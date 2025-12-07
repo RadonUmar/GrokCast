@@ -2,21 +2,28 @@
 
 This directory is for voice cloning audio files used by Grok Voice TTS API.
 
+## Current Voice Files
+
+- ✅ `joe-rogan.mp3` - Joe Rogan's voice sample
+- ⚠️ `elon-musk.mp3` - **Add Elon Musk voice sample here!**
+
 ## How to Add a Voice File
 
 1. **Get an MP3 file** of the person's voice (3-10 seconds is ideal)
-   - For Joe Rogan: find a short clip of him speaking
+   - For Joe Rogan: ✅ Already added!
+   - For Elon Musk: find a short clip of him speaking
    - The audio should be clear and have minimal background noise
    - Supported formats: `.mp3`, `.m4a`, `.wav`
 
 2. **Name the file** using the persona name:
-   - For "Joe Rogan": name it `joe-rogan.mp3`
-   - For "Elon Musk": name it `elon-musk.mp3`
+   - For "Joe Rogan": `joe-rogan.mp3` ✅
+   - For "Elon Musk": `elon-musk.mp3` ⚠️
    - Use lowercase and hyphens for spaces
 
 3. **Place it in this directory**:
    ```
-   public/voices/joe-rogan.mp3
+   public/voices/joe-rogan.mp3  ✅
+   public/voices/elon-musk.mp3  ⚠️ (add this)
    ```
 
 ## Example

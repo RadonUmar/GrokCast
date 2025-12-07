@@ -10,6 +10,8 @@ interface JoeRoganVisionOSProps {
   podcastUrl?: string;
   sessionId: string;
   personaName: string;
+  listeningVideoUrl?: string;
+  talkingVideoUrl?: string;
 }
 
 type AIMode = 'idle' | 'listening' | 'talking';
@@ -17,11 +19,13 @@ type AIMode = 'idle' | 'listening' | 'talking';
 export default function JoeRoganVisionOS({
   podcastUrl: initialPodcastUrl,
   sessionId,
-  personaName
+  personaName,
+  listeningVideoUrl: providedListeningUrl,
+  talkingVideoUrl: providedTalkingUrl,
 }: JoeRoganVisionOSProps) {
-  // Video URLs
-  const listeningVideoUrl = '/clips/JoeListening.mov';
-  const talkingVideoUrl = '/clips/JoeTalking.mov';
+  // Video URLs - use provided or default to Joe Rogan
+  const listeningVideoUrl = providedListeningUrl || '/clips/JoeListening.mov';
+  const talkingVideoUrl = providedTalkingUrl || '/clips/JoeTalking.mov';
 
   // State
   const [podcastUrl, setPodcastUrl] = useState(initialPodcastUrl || '');
