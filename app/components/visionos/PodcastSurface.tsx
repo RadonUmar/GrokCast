@@ -21,14 +21,20 @@ export default function PodcastSurface({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [showRipple, setShowRipple] = useState(false);
 
-  // Extract YouTube video ID
+  // Extract YouTube video ID and timestamp
   const getYouTubeId = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return match && match[2].length === 11 ? match[2] : null;
   };
 
+  const getStartTime = (url: string) => {
+    const timeMatch = url.match(/[?&]t=(\d+)/);
+    return timeMatch ? parseInt(timeMatch[1]) : 0;
+  };
+
   const videoId = getYouTubeId(youtubeUrl);
+  const startTime = getStartTime(youtubeUrl);
 
   // Handle iframe messages for time tracking
   useEffect(() => {
@@ -115,7 +121,7 @@ export default function PodcastSurface({
         <div className="aspect-video relative">
           <iframe
             ref={iframeRef}
-            src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&controls=1&modestbranding=1`}
+            src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&controls=1&modestbranding=1${startTime > 0 ? `&start=${startTime}` : ''}`}
             className="w-full h-full rounded-3xl"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen

@@ -25,7 +25,7 @@ const PERSONAS: Persona[] = [
     name: 'Elon Musk',
     listeningVideo: '/clips/ElonListening.mov',
     talkingVideo: '/clips/ElonSpeaking.mov',
-    exampleUrl: 'https://www.youtube.com/watch?v=sSOxPJD-VNo',
+    exampleUrl: 'https://www.youtube.com/watch?v=sSOxPJD-VNo&t=480s',
     description: 'CEO of Tesla & SpaceX',
     color: 'from-blue-500 to-purple-500',
   },
@@ -54,7 +54,7 @@ export default function HomePage() {
           {/* Header */}
           <div className="text-center mb-16">
             <h1 className="text-6xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent mb-4">
-              GrokCast VisionOS
+              GrokCast
             </h1>
             <p className="text-white/60 text-lg">Choose a persona to interact with your podcast</p>
           </div>

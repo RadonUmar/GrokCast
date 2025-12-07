@@ -10,6 +10,7 @@ interface VoiceConsoleProps {
   transcript: string;
   onSpacePress: () => void;
   onSpaceRelease: () => void;
+  personaName: string;
 }
 
 export default function VoiceConsole({
@@ -17,7 +18,8 @@ export default function VoiceConsole({
   isProcessing,
   transcript,
   onSpacePress,
-  onSpaceRelease
+  onSpaceRelease,
+  personaName
 }: VoiceConsoleProps) {
   const [transcriptWords, setTranscriptWords] = useState<string[]>([]);
 
@@ -156,7 +158,7 @@ export default function VoiceConsole({
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <p className="text-blue-400 text-sm font-semibold">Listening...</p>
+              <p className="text-blue-400 text-sm font-semibold">{personaName} is listening...</p>
             </motion.div>
           )}
         </div>

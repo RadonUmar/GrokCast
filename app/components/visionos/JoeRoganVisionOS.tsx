@@ -269,7 +269,7 @@ export default function JoeRoganVisionOS({
         <div className="text-center mb-16">
           <div className="flex items-center justify-center gap-4 mb-4">
             <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-              GrokCast VisionOS
+              GrokCast
             </h1>
             {!showUrlInput && podcastUrl && (
               <button
@@ -281,7 +281,7 @@ export default function JoeRoganVisionOS({
               </button>
             )}
           </div>
-          <p className="text-white/40 text-sm">Voice-first podcast interaction with Joe Rogan</p>
+          <p className="text-white/40 text-sm">Voice-first podcast interaction with {personaName}</p>
           {videoId && !showUrlInput && (
             <p className="text-white/30 text-xs mt-2">Loaded: {videoId}</p>
           )}
@@ -337,6 +337,7 @@ export default function JoeRoganVisionOS({
             transcript={currentTranscript}
             onSpacePress={handleSpacePress}
             onSpaceRelease={handleSpaceRelease}
+            personaName={personaName}
           />
         )}
 

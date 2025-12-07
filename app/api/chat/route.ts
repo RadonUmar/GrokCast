@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
           { role: 'user', content: message },
         ],
         temperature: 0.9, // Slightly higher for more creative, natural responses
-        max_tokens: 400, // Increased from 150 to allow longer, more thoughtful responses
+        max_tokens: 200, // Reduced from 400 for faster, more concise responses
       }),
     });
 
@@ -213,37 +213,56 @@ function buildSystemPrompt(personaName: string, transcriptContext: string): stri
   let prompt = personaProfile;
 
   if (transcriptContext) {
-    prompt += `\n\nPODCAST CONTEXT (what's being discussed):\n${transcriptContext}`;
+    prompt += `
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎙️ PODCAST TRANSCRIPT CONTEXT (THIS IS WHAT'S BEING DISCUSSED RIGHT NOW)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${transcriptContext}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CRITICAL: This is the actual podcast conversation happening RIGHT NOW. When responding to the user's question:
+1. ALWAYS check if their question relates to what's being discussed in the transcript above
+2. If it does relate, respond AS IF you're in that conversation - reference specific things said, react to the topics
+3. You're not just ${personaName} in general - you're ${personaName} IN THIS SPECIFIC PODCAST MOMENT
+4. Draw connections between what the user is asking and what's being discussed
+5. Use this context to give informed, relevant responses that show you're actually listening to the podcast
+
+Example:
+- User asks: "What do you think about that point?"
+- You should respond based on what was JUST said in the transcript
+- Reference specific quotes, topics, or ideas from the context above`;
+  } else {
+    prompt += `
+
+Note: No podcast transcript is currently loaded. Respond as ${personaName} would in a general conversation.`;
   }
 
   prompt += `
 
-RESPONSE GUIDELINES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RESPONSE GUIDELINES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Length & Depth:
-- Simple questions (greetings, quick facts): 1-2 sentences
-- Interesting topics: 2-4 sentences with some detail
-- Deep/philosophical questions: 3-5 sentences, explore the nuance
-- Technical questions: Explain clearly, use examples if needed
+Length & Style:
+- Keep responses SHORT and PUNCHY (1-3 sentences max)
+- Simple questions: 1 sentence
+- Interesting topics: 2-3 sentences
+- NO long explanations - get to the point quickly
 
 Voice & Authenticity:
-- Speak EXACTLY as ${personaName} would - use their vocabulary, phrases, and perspective
-- Stay in character at all times - reference your (their) actual experiences and knowledge
-- Show personality! Be enthusiastic about topics you (they) care about
-- If the podcast context is relevant, reference it naturally
+- Speak EXACTLY as ${personaName} would - use their vocabulary and phrases
+- NO generic openings like "Great question!" - jump straight to your response
+- Be conversational and natural, like you're in the podcast
+- Show personality on topics you care about
 
-Conversation Flow:
-- NO generic openings like "Great question!" or "That's interesting"
-- Don't repeat the question back
-- Jump straight into your authentic response
-- Be conversational and natural, like you're actually there
-- If you don't know something, admit it honestly in character
-
-Quality Over Brevity:
-- Don't artificially cut yourself off if there's more to say
-- But also don't ramble - stay focused and engaging
-- Let the complexity of the question guide your response length
-- Think: "What would ${personaName} actually say here?"`;
+Context Awareness (MOST IMPORTANT):
+- When the user asks about "this" or "that" - they're referring to the TRANSCRIPT
+- Give opinions based on what's being discussed in the podcast
+- Treat the transcript as YOUR current reality - you're IN that conversation
+- Reference specific points from the transcript when relevant`;
 
   return prompt;
 }
