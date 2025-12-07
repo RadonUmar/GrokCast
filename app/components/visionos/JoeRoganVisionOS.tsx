@@ -4,9 +4,10 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import PodcastSurface from './PodcastSurface';
 import AIVideoSurface from './AIVideoSurface';
 import VoiceConsole from './VoiceConsole';
+import YouTubeInput from './YouTubeInput';
 
 interface JoeRoganVisionOSProps {
-  podcastUrl: string;
+  podcastUrl?: string;
   sessionId: string;
   personaName: string;
 }
@@ -14,7 +15,7 @@ interface JoeRoganVisionOSProps {
 type AIMode = 'idle' | 'listening' | 'talking';
 
 export default function JoeRoganVisionOS({
-  podcastUrl,
+  podcastUrl: initialPodcastUrl,
   sessionId,
   personaName
 }: JoeRoganVisionOSProps) {
@@ -23,11 +24,15 @@ export default function JoeRoganVisionOS({
   const talkingVideoUrl = '/clips/JoeTalking.mov';
 
   // State
+  const [podcastUrl, setPodcastUrl] = useState(initialPodcastUrl || '');
+  const [videoId, setVideoId] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(!initialPodcastUrl);
   const [aiMode, setAIMode] = useState<AIMode>('idle');
   const [isPodcastPaused, setIsPodcastPaused] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState('');
   const [captions, setCaptions] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
   // Refs
   const recognitionRef = useRef<any>(null);
@@ -91,19 +96,22 @@ export default function JoeRoganVisionOS({
       return;
     }
 
-    // Switch to talking mode
-    setAIMode('talking');
+    // STAY in listening mode while processing
+    // setAIMode('talking'); // DON'T switch yet!
     setIsProcessing(true);
 
+    let audioElement: HTMLAudioElement | null = null;
+
     try {
-      // Call API to get response
-      const response = await fetch('/api/respond', {
+      // Call new chat API with transcript context
+      console.log('🔄 Fetching AI response...');
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: currentTranscript,
-          conversationHistory: [],
-          currentState: 'speaking_neutral',
+          videoId: videoId || undefined,
+          timestamp: savedTimestampRef.current,
           sessionId,
           personaName
         })
@@ -114,32 +122,130 @@ export default function JoeRoganVisionOS({
       }
 
       const data = await response.json();
+      console.log('✅ AI response received');
 
       // Add AI response to captions
       setCaptions(prev => [...prev, data.replyText]);
 
-      // Wait for response to "play" (simulate TTS duration)
-      const responseLength = data.replyText.length;
-      const estimatedDuration = Math.max(3000, responseLength * 50); // ~50ms per character minimum
+      // Play audio if available, otherwise use estimated duration
+      let duration = data.audioDuration || Math.max(3, data.replyText.length / 15); // ~15 chars per second
 
-      await new Promise(resolve => setTimeout(resolve, estimatedDuration));
+      if (data.audioBase64) {
+        // Play actual TTS audio
+        console.log('🔊 Preparing TTS audio...', data.audioBase64.substring(0, 50));
+        console.log('📊 Audio data length:', data.audioBase64.length, 'characters');
+
+        const audio = new Audio(`data:audio/mp3;base64,${data.audioBase64}`);
+        audioElement = audio;
+        setCurrentAudio(audio);
+
+        // Set volume to max and use Web Audio API for gain boost
+        audio.volume = 1.0;
+
+        // Use Web Audio API to amplify volume beyond normal limits
+        try {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const source = audioContext.createMediaElementSource(audio);
+          const gainNode = audioContext.createGain();
+
+          // Boost volume by 2x (adjust this value: 1.0 = normal, 2.0 = double, 3.0 = triple)
+          gainNode.gain.value = 2.5;
+
+          source.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          console.log('🔊 Audio gain boosted to 2.5x');
+        } catch (error) {
+          console.warn('Web Audio API not available, using standard volume:', error);
+        }
+
+        await new Promise<void>((resolve) => {
+          audio.onended = () => {
+            console.log('✅ Audio playback ended');
+            resolve();
+          };
+          audio.onerror = (e) => {
+            console.error('❌ Audio playback error:', e);
+            console.error('❌ Error target:', (e.target as any)?.error);
+            resolve();
+          };
+          audio.onloadeddata = () => {
+            console.log('✅ Audio data loaded, duration:', audio.duration);
+          };
+
+          // IMPORTANT: Switch to talking mode when audio actually starts playing
+          // Add a small delay to ensure smooth transition
+          audio.onplay = () => {
+            console.log('🎤 Audio started playing - switching to talking mode in 500ms');
+            setTimeout(() => {
+              setAIMode('talking');
+            }, 500); // 500ms delay for smooth transition
+          };
+
+          audio.oncanplay = () => {
+            console.log('✅ Audio can start playing');
+          };
+
+          console.log('▶️ Attempting to play audio...');
+          audio.play()
+            .then(() => {
+              console.log('✅ Audio play() promise resolved');
+            })
+            .catch((err) => {
+              console.error('❌ Audio play() failed:', err);
+              console.error('❌ Error name:', err.name);
+              console.error('❌ Error message:', err.message);
+              // Even if play fails, switch to talking mode so we don't get stuck
+              setAIMode('talking');
+              resolve();
+            });
+        });
+      } else {
+        // Simulate duration if no audio
+        console.log('⚠️ No audio data, using simulated duration:', duration);
+        // Switch to talking mode immediately if no audio
+        setAIMode('talking');
+        await new Promise(resolve => setTimeout(resolve, duration * 1000));
+      }
 
     } catch (error) {
       console.error('Failed to get response:', error);
       setCaptions(prev => [...prev, 'Sorry, I encountered an error processing your message.']);
+      // Switch to talking mode on error too
+      setAIMode('talking');
       await new Promise(resolve => setTimeout(resolve, 3000));
     } finally {
+      // Cleanup audio
+      if (audioElement) {
+        audioElement.pause();
+        audioElement = null;
+      }
+      setCurrentAudio(null);
+
       // Return to idle and resume podcast
       setAIMode('idle');
       setIsPodcastPaused(false);
       setIsProcessing(false);
       setCurrentTranscript('');
     }
-  }, [currentTranscript, sessionId, personaName]);
+  }, [currentTranscript, sessionId, personaName, videoId]);
 
   // Handle timestamp updates from podcast
   const handleTimeUpdate = useCallback((time: number) => {
     savedTimestampRef.current = time;
+  }, []);
+
+  // Handle video loaded from YouTube input
+  const handleVideoLoaded = useCallback((url: string, id: string) => {
+    setPodcastUrl(url);
+    setVideoId(id);
+    setShowUrlInput(false);
+    console.log(`✅ Loaded podcast: ${id}`);
+  }, []);
+
+  // Handle processing state from YouTube input
+  const handleProcessingState = useCallback((processing: boolean) => {
+    setIsProcessing(processing);
   }, []);
 
   return (
@@ -157,13 +263,36 @@ export default function JoeRoganVisionOS({
       <div className="relative container mx-auto px-8 py-12 max-w-7xl">
         {/* Header */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent mb-4">
-            GrokCast VisionOS
-          </h1>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+              GrokCast VisionOS
+            </h1>
+            {!showUrlInput && podcastUrl && (
+              <button
+                onClick={() => setShowUrlInput(true)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm text-white/80
+                         border border-white/20 transition-all duration-200"
+              >
+                Change Video
+              </button>
+            )}
+          </div>
           <p className="text-white/40 text-sm">Voice-first podcast interaction with Joe Rogan</p>
+          {videoId && !showUrlInput && (
+            <p className="text-white/30 text-xs mt-2">Loaded: {videoId}</p>
+          )}
         </div>
 
+        {/* YouTube Input - shown when no video is loaded */}
+        {showUrlInput && (
+          <YouTubeInput
+            onVideoLoaded={handleVideoLoaded}
+            onProcessing={handleProcessingState}
+          />
+        )}
+
         {/* Single center stage - seamlessly switches between podcast and AI */}
+        {!showUrlInput && podcastUrl && (
         <div className="max-w-5xl mx-auto">
           <div className="relative">
             {/* Podcast Surface - visible when aiMode is 'idle' */}
@@ -194,15 +323,25 @@ export default function JoeRoganVisionOS({
             </div>
           </div>
         </div>
+        )}
 
-        {/* Voice Console (fixed at bottom) */}
-        <VoiceConsole
-          isListening={aiMode === 'listening'}
-          isProcessing={isProcessing}
-          transcript={currentTranscript}
-          onSpacePress={handleSpacePress}
-          onSpaceRelease={handleSpaceRelease}
-        />
+        {/* Voice Console (fixed at bottom) - only show when video is loaded */}
+        {!showUrlInput && podcastUrl && (
+          <VoiceConsole
+            isListening={aiMode === 'listening'}
+            isProcessing={isProcessing}
+            transcript={currentTranscript}
+            onSpacePress={handleSpacePress}
+            onSpaceRelease={handleSpaceRelease}
+          />
+        )}
+
+        {/* Show instruction text when no video */}
+        {!podcastUrl && !showUrlInput && (
+          <div className="text-center text-white/60 mt-12">
+            <p>Enter a YouTube podcast URL to begin</p>
+          </div>
+        )}
       </div>
 
       {/* Ambient particle effects (optional future enhancement) */}

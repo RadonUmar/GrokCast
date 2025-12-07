@@ -13,7 +13,6 @@ export default function HomePage() {
 
   return (
     <JoeRoganVisionOS
-      podcastUrl="https://www.youtube.com/watch?v=sJ4Ho4ccuFg"
       sessionId={sessionId}
       personaName="Joe Rogan"
     />
