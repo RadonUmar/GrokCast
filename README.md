@@ -2,6 +2,8 @@
 
 ### **Don't just watch. Join the conversation.**
 
+<img width="1561" height="965" alt="Screenshot 2025-12-07 at 11 08 41 AM" src="https://github.com/user-attachments/assets/2d15228b-ce5e-4420-9a42-b951a0c84046" />
+
 ---
 
 ## The Fantasy You've Always Had
